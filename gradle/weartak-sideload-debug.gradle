@@ -1,0 +1,26 @@
+/**
+ * Debug signing for sideload parity with the WearTAK host debug build.
+ *
+ * The plugin repo uses the copied host keystore at {@code debug_keystore/weartak_debug.keystore}
+ * with the same signing values as {@code WEAR-508-509_Managed_Config/app/build.gradle}.
+ */
+def sideloadKs = rootProject.file("debug_keystore/weartak_debug.keystore")
+if (!sideloadKs.isFile()) {
+    return
+}
+
+android {
+    signingConfigs {
+        weartakDebugSideload {
+            storeFile sideloadKs
+            storePassword 'R8wC2$hM7q'
+            keyAlias 'platform_debug'
+            keyPassword 'R8wC2$hM7q'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.weartakDebugSideload
+        }
+    }
+}
