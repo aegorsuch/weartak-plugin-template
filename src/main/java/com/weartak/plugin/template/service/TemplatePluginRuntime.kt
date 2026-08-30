@@ -12,10 +12,14 @@ import com.weartak.plugin.sdk.binder.PluginToast
 import com.weartak.plugin.sdk.model.AlertRequestParcel
 import com.weartak.plugin.sdk.model.CepRuleEventParcel
 import com.weartak.plugin.sdk.model.CepRuleOperation
+import com.weartak.plugin.sdk.model.CotReadyEventParcel
+import com.weartak.plugin.sdk.model.CotRequestParcel
+import com.weartak.plugin.sdk.DeviceStatusContract
 import com.weartak.plugin.sdk.model.HostSettingsParcel
 import com.weartak.plugin.sdk.model.MainUiCardParcel
 import com.weartak.plugin.sdk.model.MainUiCardTypes
 import com.weartak.plugin.sdk.model.MapLayerCommandParcel
+import com.weartak.plugin.sdk.MarkerContract
 import com.weartak.plugin.sdk.model.MarkerParcel
 import com.weartak.plugin.sdk.model.PluginCapabilitiesParcel
 import com.weartak.plugin.sdk.model.PluginErrorCodes
@@ -30,6 +34,7 @@ import com.weartak.plugin.sdk.model.SettingsFieldParcel
 import com.weartak.plugin.sdk.model.SettingsFieldTypes
 import com.weartak.plugin.sdk.model.SettingsOptionParcel
 import com.weartak.plugin.sdk.model.SettingsSchemaParcel
+import com.weartak.plugin.sdk.model.SensorEventParcel
 import com.weartak.plugin.sdk.model.ToastRequestParcel
 import com.weartak.plugin.sdk.v2.aidl.IWearTakPluginHostControlV2
 import com.weartak.plugin.sdk.v2.model.CepRuleStreamEventParcel
@@ -40,6 +45,10 @@ import com.weartak.plugin.sdk.validation.ControlPlanePayloadValidator
 import com.weartak.plugin.sdk.validation.MainUiSchemaContractValidator
 import com.weartak.plugin.sdk.validation.SettingsApplyValidator
 import com.weartak.plugin.sdk.validation.SettingsSchemaContractValidator
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import java.util.concurrent.CopyOnWriteArrayList
 
 data class TemplatePluginSnapshot(
@@ -82,6 +91,16 @@ object TemplatePluginRuntime {
     const val ACTION_MAP_DEMO = "map.run"
     const val ACTION_ALERT_DEMO = "alert.run"
     const val ACTION_HELLO_WORLD = "hello.world"
+    const val ACTION_COT_DEMO = "cot.dispatch"
+    const val ACTION_MARKER_PUBLISH = "marker.publish"
+    const val ACTION_MARKER_UPDATE = "marker.update"
+    const val ACTION_MARKER_CLEAR = "marker.clear"
+    const val ACTION_DEVICE_STATUS = "device.status"
+    const val ACTION_SENSOR_EVENT = "sensor.event"
+    const val ACTION_SENSOR_BATCH = "sensor.batch"
+    const val ACTION_COT_READY = "cot.ready"
+
+    private const val DEMO_MARKER_ID = "weartak.template.demo.marker"
 
     private val lock = Any()
     private val observers = CopyOnWriteArrayList<TemplatePluginSnapshotObserver>()
@@ -122,6 +141,7 @@ object TemplatePluginRuntime {
     private var alertRuns: Int = 0
     private var helloRuns: Int = 0
     private var cepSequence: Long = 0L
+    private var sensorSequence: Long = 0L
 
     private val rawSettingsSchema = SettingsSchemaParcel(
         title = "WearTAK Settings Plugin",
@@ -380,7 +400,7 @@ object TemplatePluginRuntime {
             hostedMainUi = hostedMainUi,
             externalSettingsActivity = false,
             externalMainActivity = externalMainActivity,
-            cotReadyEvents = false,
+            cotReadyEvents = true,
             mapLayers = true,
             deviceIntegration = false,
             sharedMemory = false,
@@ -490,7 +510,105 @@ object TemplatePluginRuntime {
             ACTION_MAP_DEMO -> runMapDemo(args)
             ACTION_ALERT_DEMO -> runAlertDemo(args)
             ACTION_HELLO_WORLD -> runHelloWorldDemo()
+            ACTION_COT_DEMO -> runCotDispatchDemo()
+            ACTION_MARKER_PUBLISH -> runMarkerDemo(ACTION_MARKER_PUBLISH, markerOperation = "publish")
+            ACTION_MARKER_UPDATE -> runMarkerDemo(ACTION_MARKER_UPDATE, markerOperation = "update")
+            ACTION_MARKER_CLEAR -> runMarkerDemo(ACTION_MARKER_CLEAR, markerOperation = "clear")
+            ACTION_DEVICE_STATUS -> runDeviceStatusDemo()
+            ACTION_SENSOR_EVENT -> runSensorEventDemo()
+            ACTION_SENSOR_BATCH -> runSensorBatchDemo()
+            ACTION_COT_READY -> runCotReadyDemo(args)
             else -> fail(id, "unknown action id", attached = isAttached())
+        }
+    }
+
+    fun runCotDispatchDemo(): TemplateActionOutcome {
+        val control = pluginControl ?: return notAttached(ACTION_COT_DEMO, "host control unavailable")
+        return try {
+            val timestamp = System.currentTimeMillis()
+            val uid = "${declaredPluginId.ifBlank { "com.weartak.plugin.template" }}.demo.cot"
+            val cotXml = "<event version=\"2.0\" uid=\"$uid\" type=\"b-m-p-s-p-l\" " +
+                "how=\"m-g\" time=\"${cotTimestamp(timestamp)}\" start=\"${cotTimestamp(timestamp)}\" " +
+                "stale=\"${cotTimestamp(timestamp + 60000L)}\"/>"
+            control.requestCotDispatch(CotRequestParcel("cot_xml", Bundle().apply { putString("xml", cotXml) }))
+            recordAction(ACTION_COT_DEMO, "direct CoT dispatched")
+        } catch (ex: RemoteException) {
+            reportActionError(ACTION_COT_DEMO, "CoT demo failed: ${ex.message ?: "remote error"}")
+        } catch (ex: RuntimeException) {
+            reportActionError(ACTION_COT_DEMO, "CoT demo failed: ${ex.message ?: "runtime error"}")
+        }
+    }
+
+    fun runMarkerDemo(actionId: String, markerOperation: String): TemplateActionOutcome {
+        val control = pluginControl ?: return notAttached(actionId, "host control unavailable")
+        return try {
+            val marker = demoMarker(markerOperation)
+            when (markerOperation) {
+                "publish" -> control.requestMarkerPublish(marker)
+                "update" -> control.requestMarkerUpdate(marker)
+                "clear" -> control.requestMarkerClear(marker)
+            }
+            recordAction(actionId, "marker $markerOperation requested: ${marker.markerId}")
+        } catch (ex: RemoteException) {
+            reportActionError(actionId, "marker $markerOperation failed: ${ex.message ?: "remote error"}")
+        } catch (ex: RuntimeException) {
+            reportActionError(actionId, "marker $markerOperation failed: ${ex.message ?: "runtime error"}")
+        }
+    }
+
+    fun runDeviceStatusDemo(): TemplateActionOutcome {
+        val control = pluginControl ?: return notAttached(ACTION_DEVICE_STATUS, "host control unavailable")
+        return try {
+            val status = control.deviceStatus
+            val telemetry = status.telemetry
+            val battery = telemetry.getInt(DeviceStatusContract.KEY_BATTERY_PERCENT, -1)
+            val tak = telemetry.getBoolean(DeviceStatusContract.KEY_TAK_CONNECTED, false)
+            val sitx = telemetry.getBoolean(DeviceStatusContract.KEY_SITX_CONNECTED, false)
+            recordAction(ACTION_DEVICE_STATUS, "device ${if (status.online) "online" else "offline"}: ${status.summary}; TAK=$tak SITX=$sitx battery=${if (battery >= 0) "$battery%" else "n/a"}")
+        } catch (ex: RemoteException) {
+            reportActionError(ACTION_DEVICE_STATUS, "device status failed: ${ex.message ?: "remote error"}")
+        } catch (ex: RuntimeException) {
+            reportActionError(ACTION_DEVICE_STATUS, "device status failed: ${ex.message ?: "runtime error"}")
+        }
+    }
+
+    fun runSensorEventDemo(): TemplateActionOutcome {
+        val callback = hostCallback ?: return notAttached(ACTION_SENSOR_EVENT, "host callback unavailable")
+        return try {
+            val sequence = nextSensorSequence()
+            callback.onSensorEvent(SensorEventParcel("template.demo.sensor", System.currentTimeMillis(), sequence, Bundle().apply { putDouble("value", 42.0) }))
+            recordAction(ACTION_SENSOR_EVENT, "sensor event sent, sequence=$sequence")
+        } catch (ex: RemoteException) {
+            reportActionError(ACTION_SENSOR_EVENT, "sensor event failed: ${ex.message ?: "remote error"}")
+        } catch (ex: RuntimeException) {
+            reportActionError(ACTION_SENSOR_EVENT, "sensor event failed: ${ex.message ?: "runtime error"}")
+        }
+    }
+
+    fun runSensorBatchDemo(): TemplateActionOutcome {
+        val callback = hostCallback ?: return notAttached(ACTION_SENSOR_BATCH, "host callback unavailable")
+        return try {
+            val timestamp = System.currentTimeMillis()
+            val events = (1..3).map { index -> SensorEventParcel("template.demo.sensor", timestamp + index, nextSensorSequence(), Bundle().apply { putDouble("value", index.toDouble()) }) }
+            callback.onSensorBatchEvent(events)
+            recordAction(ACTION_SENSOR_BATCH, "sensor batch sent: ${events.size} events")
+        } catch (ex: RemoteException) {
+            reportActionError(ACTION_SENSOR_BATCH, "sensor batch failed: ${ex.message ?: "remote error"}")
+        } catch (ex: RuntimeException) {
+            reportActionError(ACTION_SENSOR_BATCH, "sensor batch failed: ${ex.message ?: "runtime error"}")
+        }
+    }
+
+    fun runCotReadyDemo(args: Bundle? = null): TemplateActionOutcome {
+        val callback = hostCallback ?: return notAttached(ACTION_COT_READY, "host callback unavailable")
+        return try {
+            val ready = args?.getBoolean("ready", true) ?: true
+            callback.onCotReadyEvent(CotReadyEventParcel(ready, if (ready) "template CoT ready" else "template CoT unavailable"))
+            recordAction(ACTION_COT_READY, "CoT readiness reported: $ready")
+        } catch (ex: RemoteException) {
+            reportActionError(ACTION_COT_READY, "CoT ready callback failed: ${ex.message ?: "remote error"}")
+        } catch (ex: RuntimeException) {
+            reportActionError(ACTION_COT_READY, "CoT ready callback failed: ${ex.message ?: "runtime error"}")
         }
     }
 
@@ -761,6 +879,34 @@ object TemplatePluginRuntime {
     }
 
     private fun nextCepSequence(): Long = synchronized(lock) { ++cepSequence }
+
+    private fun nextSensorSequence(): Long = synchronized(lock) { ++sensorSequence }
+
+    private fun demoMarker(operation: String): MarkerParcel = MarkerParcel(
+        markerId = DEMO_MARKER_ID,
+        title = if (operation == "update") "Updated Template Marker" else "Template Marker",
+        attributes = Bundle().apply {
+            putString(MarkerContract.ATTR_MARKER_TYPE, "a-f-G")
+            putString(MarkerContract.ATTR_REMARK, "WearTAK plugin template $operation demo")
+            putDouble(MarkerContract.ATTR_LAT, -1.286389)
+            putDouble(MarkerContract.ATTR_LON, 36.817223)
+        },
+    )
+
+    private fun cotTimestamp(timestamp: Long): String = SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        Locale.US,
+    ).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(timestamp))
+
+    private fun recordAction(actionId: String, message: String): TemplateActionOutcome {
+        synchronized(lock) {
+            lastActionId = actionId
+            lastActionMessage = message
+            lastError = null
+        }
+        notifyHostAction()
+        return success(actionId, message)
+    }
 
     private fun notifyHostAction() {
         val cb = hostCallback

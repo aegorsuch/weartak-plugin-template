@@ -110,6 +110,8 @@ class TemplatePluginBinder(
         ) {
             logTransition(lifecycle.dispatch(PluginLifecycleEvent.HOST_STARTED))
             TemplatePluginRuntime.updateLifecycle(lifecycle.snapshot())
+            val outcome = TemplatePluginRuntime.runHelloWorldDemo()
+            log("startup hello-world outcome success=${outcome.success} message=${outcome.message}")
         }
     }
 

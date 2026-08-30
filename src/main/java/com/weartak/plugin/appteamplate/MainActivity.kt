@@ -51,6 +51,17 @@ class MainActivity : AppCompatActivity() {
             addView(buildActionButton("Map Remove", TemplatePluginRuntime.ACTION_MAP_DEMO, removeOperationArgs()))
             addView(buildActionButton("Alert", TemplatePluginRuntime.ACTION_ALERT_DEMO))
             addView(buildActionButton("Hello World", TemplatePluginRuntime.ACTION_HELLO_WORLD))
+            addView(buildActionButton("Direct CoT", TemplatePluginRuntime.ACTION_COT_DEMO))
+            addView(buildActionButton("Marker Publish", TemplatePluginRuntime.ACTION_MARKER_PUBLISH))
+            addView(buildActionButton("Marker Update", TemplatePluginRuntime.ACTION_MARKER_UPDATE))
+            addView(buildActionButton("Marker Clear", TemplatePluginRuntime.ACTION_MARKER_CLEAR))
+            addView(buildActionButton("Device Status", TemplatePluginRuntime.ACTION_DEVICE_STATUS))
+            addView(buildActionButton("Sensor Event", TemplatePluginRuntime.ACTION_SENSOR_EVENT))
+            addView(buildActionButton("Sensor Batch", TemplatePluginRuntime.ACTION_SENSOR_BATCH))
+            addView(buildActionButton("CoT Ready", TemplatePluginRuntime.ACTION_COT_READY))
+            addView(buildActionButton("CoT Not Ready", TemplatePluginRuntime.ACTION_COT_READY, Bundle().apply {
+                putBoolean("ready", false)
+            }))
             addView(buildReturnButton())
         }
 

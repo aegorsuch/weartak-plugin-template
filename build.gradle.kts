@@ -47,7 +47,8 @@ apply(from = rootProject.file("gradle/weartak-sideload-debug.gradle"))
 apply(from = rootProject.file("gradle/weartak-sideload-production.gradle"))
 
 dependencies {
-    implementation(files("libs/weartak-plugin-sdk-debug.aar"))
+    debugImplementation(files("libs/weartak-plugin-sdk-debug.aar"))
+    releaseImplementation(files("libs/weartak-plugin-sdk-release.aar"))
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     testImplementation("junit:junit:4.13.2")
