@@ -43,17 +43,27 @@ android {
     }
 }
 
+apply(from = rootProject.file("gradle/weartak-sideload-debug.gradle"))
+apply(from = rootProject.file("gradle/weartak-sideload-production.gradle"))
+
 android.applicationVariants.all {
-    if (buildType.name == "debug") {
+    val outputName = when (buildType.name) {
+        "debug" -> "weartak-plugin-app-template.apk"
+        "release" -> if (signingConfig?.storeFile != null) {
+            "weartak-plugin-app-template-release.apk"
+        } else {
+            "weartak-plugin-app-template-release-unsigned.apk"
+        }
+        else -> null
+    }
+
+    if (outputName != null) {
         outputs.all {
             (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "weartak-plugin-app-template.apk"
+                outputName
         }
     }
 }
-
-apply(from = rootProject.file("gradle/weartak-sideload-debug.gradle"))
-apply(from = rootProject.file("gradle/weartak-sideload-production.gradle"))
 
 dependencies {
     debugImplementation(files("libs/weartak-plugin-sdk-debug.aar"))
