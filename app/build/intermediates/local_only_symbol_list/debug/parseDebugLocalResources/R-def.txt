@@ -1,7 +1,0 @@
-R_DEF: Internal format may change without notice
-local
-string app_name
-string settings_title
-string template_main_hint
-string template_settings_hint
-style Theme.WearTakPluginTemplate

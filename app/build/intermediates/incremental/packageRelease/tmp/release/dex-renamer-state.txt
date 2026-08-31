@@ -1,4 +1,0 @@
-#Mon Aug 31 19:12:33 EAT 2026
-base.0=/home/ghost/Documents/Ascent/WearOS/weartak-plugin-app-template/app/build/intermediates/dex/release/mergeDexRelease/classes.dex
-renamed.0=classes.dex
-path.0=classes.dex

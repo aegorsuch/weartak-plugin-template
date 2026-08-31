@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">WearTAK Plugin App Template</string>
-    <string name="settings_title">WearTAK plugin app template</string>
-    <string name="template_main_hint">WearTAK plugin app template.\nService action:\n%1$s</string>
-    <string name="template_settings_hint">External settings hook for action:\n%1$s</string>
-    <style name="Theme.WearTakPluginTemplate" parent="Theme.AppCompat.DayNight.NoActionBar"/>
-</resources>
