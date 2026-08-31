@@ -1,0 +1,4 @@
+http://schemas.android.com/apk/res-auto;;${\:app*release*MAIN*sourceProvider*0*resDir*0}/values/strings.xml,${\:app*release*MAIN*sourceProvider*0*resDir*0}/values/themes.xml,+string:app_name,0,V400020037,4000020073,;"WearTAK Plugin App Template";template_settings_hint,0,V400050122,5b00050179,;"External settings hook for action\:
+%1$s";template_main_hint,0,V4000400bf,620004011d,;"WearTAK plugin app template.
+Service action\:
+%1$s";settings_title,0,V400030078,46000300ba,;"WearTAK plugin app template";+style:Theme.WearTakPluginTemplate,1,V400020037,5e00020091,;DTheme.AppCompat.DayNight.NoActionBar,;

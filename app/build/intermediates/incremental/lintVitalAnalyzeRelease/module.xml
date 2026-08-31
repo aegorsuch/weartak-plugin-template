@@ -1,0 +1,19 @@
+<lint-module
+    format="1"
+    dir="/home/ghost/Documents/Ascent/WearOS/weartak-plugin-app-template/app"
+    name=":app"
+    type="APP"
+    maven="weartak-plugin-app-teamplate:app:unspecified"
+    agpVersion="8.7.2"
+    buildFolder="build"
+    bootClassPath="/home/ghost/Android/Sdk/platforms/android-34/android.jar:/home/ghost/Android/Sdk/build-tools/34.0.0/core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-34"
+    neverShrinking="true">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="release"/>
+</lint-module>

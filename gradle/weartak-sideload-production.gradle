@@ -1,6 +1,30 @@
-/**
- * Release signing is intentionally not overridden here.
- *
- * The plugin app template uses the release signing configuration supplied by the host/build
- * environment.
- */
+def signingProperties = new Properties()
+def signingPropertiesFile = rootProject.file("signing.properties")
+if (signingPropertiesFile.isFile()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+
+def signingValue = { String environmentName, String propertyName ->
+    System.getenv(environmentName) ?: signingProperties.getProperty(propertyName)
+}
+
+def keystorePath = signingValue("WEARTAK_RELEASE_KEYSTORE_FILE", "RELEASE_KEYSTORE_FILE")
+if (!keystorePath) {
+    return
+}
+
+android {
+    signingConfigs {
+        weartakReleaseGitlab {
+            storeFile rootProject.file(keystorePath)
+            storePassword signingValue("WEARTAK_RELEASE_STORE_PASSWORD", "RELEASE_STORE_PASSWORD")
+            keyAlias signingValue("WEARTAK_RELEASE_KEY_ALIAS", "RELEASE_KEY_ALIAS")
+            keyPassword signingValue("WEARTAK_RELEASE_KEY_PASSWORD", "RELEASE_KEY_PASSWORD")
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.weartakReleaseGitlab
+        }
+    }
+}

@@ -1,0 +1,35 @@
+{
+  "features": [
+    {
+      "id": "__PLUGIN_ID__.features.motion_avg",
+      "type": "sample_window",
+      "source": "__PLUGIN_ID__.__SENSOR_KEY__",
+      "op": "avg",
+      "sample_count": 5,
+      "min_samples": 1,
+      "update_interval_ms": 2000
+    }
+  ],
+  "rules": [
+    {
+      "id": "__PLUGIN_ID__.rules.demo_alert",
+      "description": "Fire a demo alert when the motion average crosses 0.5",
+      "sustained_for_sec": 0,
+      "hold_down_sec": 0,
+      "when": {
+        "gt_key": [
+          "__PLUGIN_ID__.features.motion_avg",
+          0.5
+        ]
+      },
+      "action": {
+        "type": "warn_log",
+        "severity": "ALERT",
+        "message": "CEP demo alert fired for __PLUGIN_ID__.__SENSOR_KEY__",
+        "isTak": true,
+        "category": "CAT_HEALTH_GENERIC",
+        "sendSms": false
+      }
+    }
+  ]
+}
