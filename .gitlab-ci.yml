@@ -55,9 +55,14 @@ stages:
       APK="$(find app/build/outputs/apk/release -type f -name '*.apk' | head -1)"
       [ -n "$APK" ] || { echo "ERROR: No release APK"; exit 1; }
 
-      APKSIGNER="/opt/android-sdk-linux/build-tools/35.0.0/apksigner"
-      [ -x "$APKSIGNER" ] || { echo "ERROR: apksigner missing"; exit 1; }
+      SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/android-sdk-linux}}"
+      APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -1)"
 
+      [ -n "$APKSIGNER" ] && [ -x "$APKSIGNER" ] || {
+        echo "ERROR: apksigner missing"
+        exit 1
+      }
+      
       EXPECTED="1579b600cd84e619e76a91c2db6b031938c999bc2aad926b9a51ec2b166d348d"
 
       ACTUAL="$(
