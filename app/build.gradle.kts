@@ -1,6 +1,6 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    id("com.android.application") version "8.7.2"
+    id("org.jetbrains.kotlin.android") version "2.0.21"
 }
 
 android {
@@ -45,25 +45,6 @@ android {
 
 apply(from = rootProject.file("gradle/weartak-sideload-debug.gradle"))
 apply(from = rootProject.file("gradle/weartak-sideload-production.gradle"))
-
-android.applicationVariants.all {
-    val outputName = when (buildType.name) {
-        "debug" -> "weartak-plugin-app-template.apk"
-        "release" -> if (signingConfig?.storeFile != null) {
-            "weartak-plugin-app-template-release.apk"
-        } else {
-            "weartak-plugin-app-template-release-unsigned.apk"
-        }
-        else -> null
-    }
-
-    if (outputName != null) {
-        outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                outputName
-        }
-    }
-}
 
 dependencies {
     debugImplementation(files("libs/weartak-plugin-sdk-debug.aar"))

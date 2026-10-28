@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "weartak-plugin-app-teamplate"
 include(":app")
+

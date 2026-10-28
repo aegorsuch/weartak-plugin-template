@@ -1,8 +1,23 @@
-def signingProperties = new Properties()
-def signingPropertiesFile = rootProject.file("signing.properties")
-if (signingPropertiesFile.isFile()) {
-    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+import java.util.Properties
+
+/**
+ * Uses the same optional release signing contract as WearTAK.
+ *
+ * Set WEARTAK_SIGNING_PROPERTIES to WearTAK's signing.properties file, or provide an ignored
+ * signing.properties file at this repository's root. Relative keystore paths are resolved from
+ * the directory containing that properties file.
+ */
+def signingPropertiesPath = System.getenv("WEARTAK_SIGNING_PROPERTIES")
+def signingPropertiesFile = signingPropertiesPath
+        ? new File(signingPropertiesPath)
+        : rootProject.file("signing.properties")
+
+if (!signingPropertiesFile.isFile()) {
+    return
 }
+
+def signingProperties = new Properties()
+signingPropertiesFile.withInputStream { signingProperties.load(it) }
 
 def signingValue = { String environmentName, String propertyName ->
     System.getenv(environmentName) ?: signingProperties.getProperty(propertyName)
@@ -13,18 +28,34 @@ if (!keystorePath) {
     return
 }
 
+def storePasswordValue = signingValue("WEARTAK_RELEASE_STORE_PASSWORD", "RELEASE_STORE_PASSWORD")
+def keyAliasValue = signingValue("WEARTAK_RELEASE_KEY_ALIAS", "RELEASE_KEY_ALIAS")
+def keyPasswordValue = signingValue("WEARTAK_RELEASE_KEY_PASSWORD", "RELEASE_KEY_PASSWORD")
+
+if (!storePasswordValue || !keyAliasValue || !keyPasswordValue) {
+    throw new GradleException("Incomplete WearTAK release signing configuration")
+}
+
+def keystoreFile = new File(keystorePath)
+if (!keystoreFile.isAbsolute()) {
+    keystoreFile = new File(signingPropertiesFile.parentFile, keystorePath)
+}
+if (!keystoreFile.isFile()) {
+    throw new GradleException("WearTAK release keystore not found: ${keystoreFile}")
+}
+
 android {
     signingConfigs {
-        weartakReleaseGitlab {
-            storeFile rootProject.file(keystorePath)
-            storePassword signingValue("WEARTAK_RELEASE_STORE_PASSWORD", "RELEASE_STORE_PASSWORD")
-            keyAlias signingValue("WEARTAK_RELEASE_KEY_ALIAS", "RELEASE_KEY_ALIAS")
-            keyPassword signingValue("WEARTAK_RELEASE_KEY_PASSWORD", "RELEASE_KEY_PASSWORD")
+        weartakReleaseSideload {
+            storeFile keystoreFile
+            storePassword storePasswordValue
+            keyAlias keyAliasValue
+            keyPassword keyPasswordValue
         }
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.weartakReleaseGitlab
+            signingConfig signingConfigs.weartakReleaseSideload
         }
     }
 }
