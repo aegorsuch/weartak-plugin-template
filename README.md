@@ -27,6 +27,40 @@ This repo is intended for testing the plugin behavior in an app shell with on-de
 
 The project expects a local Android SDK and JDK 17.
 
+## Forge release pipeline
+
+`.gitlab-ci.yml` runs publisher/checklist tests and unsigned debug tests for merge requests,
+the default branch, and version tags. Protected default-branch pushes also build a
+production-signed APK, verify its WearTAK production certificate, and publish it to a
+GitHub rolling release. A verified publish dispatches the GitHub workflow, which creates
+one release-testing issue per GitLab pipeline.
+
+Before enabling protected default-branch publishing, a project owner must configure these
+GitLab CI/CD variables:
+
+| Variable | Value |
+| --- | --- |
+| `WEARTAK_RELEASE_KEYSTORE_B64` | Base64-encoded WearTAK production keystore |
+| `RELEASE_STORE_PASSWORD` | Production keystore password |
+| `RELEASE_KEY_ALIAS` | Production key alias |
+| `RELEASE_KEY_PASSWORD` | Production key password |
+| `GITHUB_RELEASE_REPOSITORY` | GitHub destination as `owner/repository` |
+| `GITHUB_RELEASE_TOKEN` | Masked, protected GitHub token with Contents read/write and repository-dispatch access |
+| `GITHUB_RELEASE_TAG` | Existing fixed tag on the GitHub destination; publisher never creates or moves tags |
+| `GITHUB_RELEASE_APPLICATION_ID` | `applicationId` from `app/build.gradle.kts` |
+| `GITHUB_RELEASE_ASSET_PREFIX` | Short plugin identifier used in published APK names |
+
+Protect the GitLab default branch and the fixed GitHub release tag. The GitHub repository
+must define `RELEASE_TESTER` as a username with permission to be assigned issues and
+`GITHUB_RELEASE_TAG` with the same tag value used by GitLab for manual checklist runs.
+Keep signing and GitHub tokens in protected/masked CI variables; never commit them.
+
+New plugin authors must set the APK application ID, choose a unique asset prefix, configure
+the GitHub mirror/release variables above, and provide production signing variables before
+enabling publish jobs. `settings.gradle.kts` uses TAK Artifactory when token-service
+credentials are available and falls back to Google Maven Central and the Gradle plugin
+portal for local builds.
+
 ## Notes
 
 - Signing is checked into the repo for deterministic sideload builds.
