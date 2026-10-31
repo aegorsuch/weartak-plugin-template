@@ -204,7 +204,18 @@ def release_state(release, project_id, tag):
     return state
 
 
-def publish(api, state, apk, digest, version, code):
+def release_asset_name(asset_prefix, version, pipeline_iid):
+    filename_version = version.split("+", 1)[0]
+    pipeline_version = re.fullmatch(r"(.+)-p([1-9][0-9]*)", filename_version)
+    if pipeline_version:
+        if int(pipeline_version[2]) != pipeline_iid:
+            raise PublishError("APK version pipeline does not match the publishing pipeline.")
+        filename_version = pipeline_version[1]
+    return f"WearTAK-Plugin-{asset_prefix}-{filename_version}-p{pipeline_iid}.apk"
+
+
+def publish(api, state, apk, digest, version, code, *, asset_prefix):
+    asset_name = release_asset_name(asset_prefix, version, state["pipeline_iid"])
     repository = api.request("GET", "")
     if (
         repository.get("full_name") != state["repository"]
@@ -257,9 +268,6 @@ def publish(api, state, apk, digest, version, code):
             },
         )
     release_id = release["id"]
-    asset_name = (
-        f"{state['asset_prefix']}-{version}-p{state['pipeline_iid']}.apk"
-    )
     assets = api.assets(release_id)
     matches = [item for item in assets if item.get("name") == asset_name]
     if len(matches) > 1:
@@ -346,6 +354,7 @@ def main():
             digest,
             version,
             code,
+            asset_prefix=config["asset_prefix"],
         )
     except (PublishError, OSError, ValueError, KeyError, TypeError) as error:
         message = str(error) if isinstance(error, PublishError) else type(error).__name__
