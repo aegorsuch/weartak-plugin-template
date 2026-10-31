@@ -58,7 +58,7 @@ GitLab CI/CD variables:
 | `GITHUB_RELEASE_TOKEN` | Masked, protected GitHub token with Contents read/write and repository-dispatch access |
 | `GITHUB_RELEASE_TAG` | Existing fixed tag on the GitHub destination; publisher never creates or moves tags |
 | `GITHUB_RELEASE_APPLICATION_ID` | `applicationId` from `app/build.gradle.kts` |
-| `GITHUB_RELEASE_ASSET_PREFIX` | Short plugin identifier used in published APK names |
+| `GITHUB_RELEASE_ASSET_PREFIX` | Plugin name only, e.g. `Sextant`, `LACE`, `TAK-CAD`, `goTenna`, or `MOPP`; omit `WearTAK-Plugin-` |
 
 Protect the GitLab default branch and the fixed GitHub release tag. The GitHub repository
 must define `RELEASE_TESTER` as a username with permission to be assigned issues and
@@ -70,6 +70,18 @@ the GitHub mirror/release variables above, and provide production signing variab
 enabling publish jobs. `settings.gradle.kts` uses TAK Artifactory when token-service
 credentials are available and falls back to Google Maven Central and the Gradle plugin
 portal for local builds.
+
+Published APK filenames follow `WearTAK-Plugin-<PluginName>-<version>-p<pipeline>.apk`,
+for example `WearTAK-Plugin-Sextant-5.8.4-p42.apk`. The pipeline is the GitLab
+project pipeline IID, not the global pipeline ID. An existing `-p<pipeline>` suffix
+is included only once and must match the publishing pipeline; `+` build metadata
+is omitted from filenames. Android version metadata, application labels, package IDs,
+signed APK bytes, and release tags remain unchanged.
+
+The publisher verifies uploaded bytes before publishing the release and retains existing
+assets. For naming migrations, upload the new filename alongside the old asset, verify its
+SHA256, then update download links and checksum filename references. Renaming an existing
+GitHub asset changes its download URL; it does not preserve old filename links.
 
 ## Notes
 
